@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using ContosoUniversity.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using ContosoUniversity.Data;
-using ContosoUniversity.Models;
+using System.Threading.Tasks;
 
 namespace ContosoUniversity.Pages.Students
 {
@@ -38,10 +34,12 @@ namespace ContosoUniversity.Pages.Students
             {
                 return NotFound();
             }
+
             if (saveChangesError.GetValueOrDefault())
             {
-                ErrorMessage = "Delete failed. Try Again";
+                ErrorMessage = "Delete failed. Try again";
             }
+
             return Page();
         }
 
@@ -54,22 +52,23 @@ namespace ContosoUniversity.Pages.Students
 
             var student = await _context.Students.FindAsync(id);
 
-            if (Student != null)
+            if (student == null)
             {
                 return NotFound();
             }
+
             try
             {
                 _context.Students.Remove(student);
                 await _context.SaveChangesAsync();
                 return RedirectToPage("./Index");
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException /* ex */)
             {
-                return RedirectToAction("./Delete", new { id, saveChangesError = true });
+                //Log the error (uncomment ex variable name and write a log.)
+                return RedirectToAction("./Delete",
+                                     new { id, saveChangesError = true });
             }
-
-            return RedirectToPage("./Index");
         }
     }
 }
