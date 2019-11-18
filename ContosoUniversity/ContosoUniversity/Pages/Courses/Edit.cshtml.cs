@@ -11,7 +11,7 @@ using ContosoUniversity.Models;
 
 namespace ContosoUniversity.Pages.Courses
 {
-    public class EditModel : PageModel
+    public class EditModel : DepartmentNamePageModel
     {
         private readonly ContosoUniversity.Data.SchoolContext _context;
 
@@ -21,7 +21,7 @@ namespace ContosoUniversity.Pages.Courses
         }
 
         [BindProperty]
-        public CourseAssignment CourseAssignment { get; set; }
+        public Course Course { get; set; }
 
         public async Task<IActionResult> OnGetAsync(int? id)
         {
@@ -30,52 +30,44 @@ namespace ContosoUniversity.Pages.Courses
                 return NotFound();
             }
 
-            CourseAssignment = await _context.CourseAssignments
-                .Include(c => c.Course)
-                .Include(c => c.Instructor).FirstOrDefaultAsync(m => m.CourseID == id);
+            Course = await _context.Courses
+                .Include(c => c.Department).FirstOrDefaultAsync(m => m.CourseID == id);
 
-            if (CourseAssignment == null)
+            if (Course == null)
             {
                 return NotFound();
             }
-           ViewData["CourseID"] = new SelectList(_context.Courses, "CourseID", "CourseID");
-           ViewData["InstructorID"] = new SelectList(_context.Instructors, "ID", "FirstMidName");
+            PopulateDepartmentsDropDownList(_context, Course.DepartmentID);
             return Page();
         }
 
         // To protect from overposting attacks, please enable the specific properties you want to bind to, for
         // more details see https://aka.ms/RazorPagesCRUD.
-        public async Task<IActionResult> OnPostAsync()
+        public async Task<IActionResult> OnPostAsync(int? id)
         {
-            if (!ModelState.IsValid)
+            if (id == null)
             {
-                return Page();
+                return NotFound();
             }
 
-            _context.Attach(CourseAssignment).State = EntityState.Modified;
+            var courseToUpdate = await _context.Courses.FindAsync(id);
 
-            try
+            if (courseToUpdate == null)
+            {
+                return NotFound();
+            }
+
+            if (await TryUpdateModelAsync<Course>(
+                courseToUpdate,
+                "course",
+                    c => c.Credits, c => c.DepartmentID, c => c.Title))
             {
                 await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CourseAssignmentExists(CourseAssignment.CourseID))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return RedirectToPage("./Index");
             }
 
-            return RedirectToPage("./Index");
-        }
-
-        private bool CourseAssignmentExists(int id)
-        {
-            return _context.CourseAssignments.Any(e => e.CourseID == id);
+            PopulateDepartmentsDropDownList(_context, courseToUpdate.DepartmentID);
+            return Page();
         }
     }
 }
